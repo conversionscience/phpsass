@@ -17,7 +17,7 @@
  */
 class SassMixinNode extends SassNode {
   const NODE_IDENTIFIER = '+';
-  const MATCH = '/^(\+|@include\s+)([a-z0-9_-]+)(?:\(([^(]+(\([^)]*\))?)*\))?\s*;?\s*$/i';
+  const MATCH = '/^(\+|@include\s+)([a-z0-9_-]+)(?:\((.*?)\))?\s*;?\s*$/i';
   const IDENTIFIER = 1;
   const NAME = 2;
   const ARGS = 3;

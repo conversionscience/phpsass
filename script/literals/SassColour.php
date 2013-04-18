@@ -909,10 +909,15 @@ class SassColour extends SassLiteral {
    * @return mixed match at the start of the string or false if no match
    */
   static public function isa($subject) {
+    return (preg_match(self::getRegex(), strtolower($subject), $matches) ?
+      $matches[0] : false);
+  }
+
+  static public function getRegex() {
     if (empty(self::$regex)) {
       self::$regex = str_replace('{CSS_COLOURS}', join('|', array_reverse(array_keys(self::$svgColours))), self::MATCH);
     }
-    return (preg_match(self::$regex, strtolower($subject), $matches) ?
-      $matches[0] : false);
+    return self::$regex;
   }
 }
+

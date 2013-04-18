@@ -30,7 +30,7 @@ class SassCommentNode extends SassNode {
   public function __construct($token) {
     parent::__construct($token);
     preg_match(self::MATCH, $token->source, $matches);
-    $this->value = $matches[self::COMMENT];
+    $this->value = preg_replace('/^\s*\*\s*/m', '', $matches[self::COMMENT]);
   }
 
   protected function getValue() {

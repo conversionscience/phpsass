@@ -46,28 +46,17 @@ class SassScriptFunction {
     if (is_array($input)) {
       $output = array();
       foreach ($input as $k => $token) {
-        $output[$k] = trim($this->process_arguments($token), '\'"');
+        // $output[$k] = trim($this->process_arguments($token), '\'"');
+        $output[$k] = $this->process_arguments($token);
       }
       return $output;
     }
 
     $token = $input;
-    if (is_null($token))
-      return ' ';
+    // if (is_null($token))
+    //   return ' ';
 
-    if (!is_object($token))
-      return (string) $token;
-
-    if (method_exists($token, 'toString'))
-      return $token->toString();
-
-    if (method_exists($token, '__toString'))
-      return $token->__toString();
-
-    if (method_exists($token, 'perform'))
-      return $token->perform();
-
-    return '';
+    return is_object($token) ? $token : (string) $token;
   }
 
   /**
@@ -277,12 +266,12 @@ class SassScriptFunction {
         throw new SassMixinNodeException("Function::$name: Required variable ($name) not given.\nFunction defined: " . $source->token->filename . '::' . $source->token->line . "\nFunction used", $source);
       }
       // splats
+
       if (substr($name, -3, 3) == '...') {
         unset ($_required[$name]);
         $name = substr($name, 0, -3);
         $_required[$name] = new SassList('', ',');
         $_required[$name]->value = array_merge(array($arg), $provided);
-        continue;
       } else {
         $_required[$name] = $arg;
       }
@@ -293,6 +282,12 @@ class SassScriptFunction {
     foreach ($_required as $key => $value) {
       if (!is_object($value)) {
         $_required[$key] = SassScriptParser::$instance->evaluate($value, $context);
+      } else if ($value instanceOf SassList) {
+        foreach($value->value as &$_value) {
+          if (!is_object($_value)) {
+            $_value = SassScriptParser::$instance->evaluate($_value, $context);
+          }
+        }
       }
     }
 

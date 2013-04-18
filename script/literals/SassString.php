@@ -18,7 +18,7 @@ require_once('SassLiteral.php');
  * @subpackage  Sass.script.literals
  */
 class SassString extends SassLiteral {
-  const MATCH = '/^(((["\'])(.*?)(\3))|(-[a-zA-Z-]+[^\s]*?))/i';
+  const MATCH = '/^(((["\'])(.*?)(\3)))/i';
   const _MATCH = '/^(["\'])(.*?)(\1)?$/'; // Used to match strings such as "Times New Roman",serif
   const VALUE = 2;
   const QUOTE = 3;
@@ -76,6 +76,14 @@ class SassString extends SassLiteral {
    */
   public function op_eq($other) {
     return new SassBoolean($this->value == $other->value || $this->toString() == $other->toString());
+  }
+
+  /**
+   * Unary minus, works for browser-specific prefixes
+   */
+  public function op_unary_minus() {
+    $this->value = '-' . $this->value;
+    return $this;
   }
 
   /**

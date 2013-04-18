@@ -1,5 +1,12 @@
 <?php
+
 require_once __DIR__ . '/../ExtensionInterface.php';
+require_once __DIR__ . '/SassColourStop.php';
+require_once __DIR__ . '/CompassPrefixesInterface.php';
+require_once __DIR__ . '/CompassGradient.php';
+require_once __DIR__ . '/CompassLinearGradient.php';
+require_once __DIR__ . '/CompassRadialGradient.php';
+
 class Compass implements ExtensionInterface
 {
 
@@ -28,7 +35,7 @@ class Compass implements ExtensionInterface
         '-svg',
         '-pie',
         '-css2',
-        'owg',
+        '-owg',
         'prefixed',
         'prefix',
         'elements-of-type',
@@ -58,7 +65,9 @@ class Compass implements ExtensionInterface
         'prefixed-for-transition',
         'stylesheet-url',
         'font-url',
-        'image-url'
+        'image-url',
+        'linear-gradient',
+        'radial-gradient'
     );
 
     public static function getFunctions($namespace)
@@ -251,26 +260,18 @@ class Compass implements ExtensionInterface
 
     public static function compassCompact()
     {
-        $sep = ', ';
-
         $args = func_get_args();
-        $list = array();
+        $list = new SassList("", ",");
 
         // remove blank entries
         // append non-blank entries to list
         foreach ($args as $k => $v) {
-            if (is_object($v)) {
-                $string = (isset($v->value) ? $v->value : false);
-            } else {
-                $string = (string)$v;
+            $string = $v->toString();
+            if ($string && $string !== 'false') {
+                $list->append($v);
             }
-            if (empty($string) || $string == 'false') {
-                unset($args[$k]);
-                continue;
-            }
-            $list[] = $string;
         }
-        return new SassString(implode($sep, $list));
+        return $list;
     }
 
     public static function compassCompassNth()
@@ -517,5 +518,92 @@ class Compass implements ExtensionInterface
             $ret = 'center';
         }
         return $ret;
+    }
+
+    public static function compassPrefixed()
+    {
+        $args = func_get_args();
+        $prefix = array_shift($args);
+
+        $ret = array();
+
+        foreach ($args as $arg) {
+            $ret[] = $arg instanceOf SassList ?
+                in_array(true, array_map(function($e) use ($prefix) {
+                        return Compass::compassPrefix($prefix, $e);
+                    }, $arg->value)) :
+                is_object($arg) &&
+                    is_subclass_of($arg, 'CompassPrefixesInterface') &&
+                    $arg->supported($prefix);
+        }
+
+        return in_array(true, $ret) ? true : '';
+    }
+
+    public static function compassPrefix()
+    {
+        $args = func_get_args();
+        $prefix = array_shift($args);
+
+        $ret = new SassList(array(), ",");
+
+        foreach ($args as $arg) {
+            $ret->append($arg instanceOf SassList ?
+                new SassList(array_map(function($e) use ($prefix) {
+                        return Compass::compassPrefix($prefix, $e);
+                    }, $arg->value), $arg->separator) :
+                new SassString(is_object($arg) ?
+                    (is_subclass_of($arg, 'CompassPrefixesInterface') ?
+                        ($arg->supported($prefix) ? $arg->toPrefix($prefix) : '') :
+                        $arg->toString($prefix)) :
+                    (string)$arg));
+        }
+
+        return $ret;
+
+    }
+
+    public static function compassOwg()
+    {
+        $args = func_get_args();
+        array_unshift($args, '-owg');
+        return call_user_func_array('Compass::compassPrefix', $args);
+    }
+
+    public static function compassWebkit()
+    {
+        $args = func_get_args();
+        array_unshift($args, '-webkit');
+        return call_user_func_array('Compass::compassPrefix', $args);
+    }
+
+    public static function compassMoz()
+    {
+        $args = func_get_args();
+        array_unshift($args, '-moz');
+        return call_user_func_array('Compass::compassPrefix', $args);
+    }
+
+    public static function compassO()
+    {
+        $args = func_get_args();
+        array_unshift($args, '-o');
+        return call_user_func_array('Compass::compassPrefix', $args);
+    }
+
+    public static function compassLinearGradient()
+    {
+        return Compass::gradient('CompassLinearGradient', func_get_args());
+    }
+
+    public static function compassRadialGradient()
+    {
+        return Compass::gradient('CompassRadialGradient', func_get_args());
+    }
+
+    protected static function gradient($class, $args)
+    {
+        $reflect = new ReflectionClass($class);
+        return $reflect->newInstanceArgs($args);
     }
 }
